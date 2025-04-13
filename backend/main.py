@@ -183,15 +183,29 @@ async def query(request: QueryRequest):
     
     pipeline = sessions[session_id]["pipeline"]
     
-    # Run the pipeline
-    result = await pipeline.arun_pipeline(query_text)
-    
-    # Create a streaming response
-    async def stream_response():
-        async for chunk in result["response"]:
-            yield chunk
-    
-    return StreamingResponse(stream_response(), media_type="text/plain")
+    try:
+        # Run the pipeline
+        result = await pipeline.arun_pipeline(query_text)
+        
+        # Create a streaming response
+        async def stream_response():
+            try:
+                async for chunk in result["response"]:
+                    # Ensure each chunk is properly encoded and flushed
+                    yield chunk
+            except Exception as e:
+                # Log the error but don't raise it to avoid breaking the stream
+                print(f"Error in streaming response: {str(e)}")
+                yield f"\n\nError during response generation: {str(e)}"
+        
+        return StreamingResponse(
+            stream_response(),
+            media_type="text/plain",
+            headers={"X-Accel-Buffering": "no"}  # Disable buffering for Nginx
+        )
+    except Exception as e:
+        # Handle exceptions during pipeline execution
+        raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
 
 
 @app.delete("/session/{session_id}")

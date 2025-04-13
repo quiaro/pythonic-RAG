@@ -26,6 +26,7 @@ const ChatInterface = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const messagesEndRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
   // Auto-scroll to bottom of messages
   const scrollToBottom = () => {
@@ -35,6 +36,16 @@ const ChatInterface = ({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Cleanup function for in-progress requests
+  useEffect(() => {
+    return () => {
+      // Abort any in-progress fetch when component unmounts
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Initial welcome message
   useEffect(() => {
@@ -53,6 +64,11 @@ const ChatInterface = ({
 
     if (!input.trim() || isLoading) return;
 
+    // Abort any previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
     // Add user message to chat
     const userMessage = { role: 'user', content: input };
     setMessages((prev) => [...prev, userMessage]);
@@ -60,72 +76,117 @@ const ChatInterface = ({
     setIsLoading(true);
     setError('');
 
+    // Create an AbortController to handle cleanup
+    const controller = new AbortController();
+    const signal = controller.signal;
+    abortControllerRef.current = controller;
+
+    // Use a ref to track the accumulated response
+    const responseTextRef = { current: '' };
+    const tempId = Date.now().toString();
+
     try {
       // Prepare assistant response placeholder
-      const tempId = Date.now().toString();
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: '', id: tempId, loading: true },
       ]);
 
-      // Send request to backend
-      const response = await axios.post(
-        '/query',
-        {
+      // Using fetch API for better streaming support
+      const response = await fetch('/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           session_id: sessionId,
           query: userMessage.content,
-        },
-        {
-          responseType: 'text',
-          onDownloadProgress: (progressEvent) => {
-            const responseText = progressEvent.currentTarget.response || '';
-
-            setMessages((prev) => {
-              const updatedMessages = [...prev];
-              const assistantMsgIndex = updatedMessages.findIndex(
-                (msg) => msg.id === tempId
-              );
-
-              if (assistantMsgIndex !== -1) {
-                updatedMessages[assistantMsgIndex] = {
-                  ...updatedMessages[assistantMsgIndex],
-                  content: responseText,
-                  loading: progressEvent.loaded < progressEvent.total,
-                };
-              }
-
-              return updatedMessages;
-            });
-          },
-        }
-      );
-
-      // Ensure we have the final state
-      setMessages((prev) => {
-        const updatedMessages = [...prev];
-        const assistantMsgIndex = updatedMessages.findIndex(
-          (msg) => msg.id === tempId
-        );
-
-        if (assistantMsgIndex !== -1) {
-          updatedMessages[assistantMsgIndex] = {
-            role: 'assistant',
-            content: response.data,
-            id: tempId,
-            loading: false,
-          };
-        }
-
-        return updatedMessages;
+        }),
+        signal, // Add the abort signal
       });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        // Check if we need to abort
+        if (signal.aborted) {
+          break;
+        }
+
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        // Decode the chunk and append to accumulated response
+        const chunk = decoder.decode(value, { stream: true });
+        responseTextRef.current += chunk;
+
+        // Update the message with the current response text
+        setMessages((prev) => {
+          const updatedMessages = [...prev];
+          const assistantMsgIndex = updatedMessages.findIndex(
+            (msg) => msg.id === tempId
+          );
+
+          if (assistantMsgIndex !== -1) {
+            updatedMessages[assistantMsgIndex] = {
+              ...updatedMessages[assistantMsgIndex],
+              content: responseTextRef.current,
+              loading: true,
+            };
+          }
+
+          return updatedMessages;
+        });
+      }
+
+      // Only finalize if not aborted
+      if (!signal.aborted) {
+        // Mark the message as complete
+        setMessages((prev) => {
+          const updatedMessages = [...prev];
+          const assistantMsgIndex = updatedMessages.findIndex(
+            (msg) => msg.id === tempId
+          );
+
+          if (assistantMsgIndex !== -1) {
+            updatedMessages[assistantMsgIndex] = {
+              role: 'assistant',
+              content: responseTextRef.current,
+              id: tempId,
+              loading: false,
+            };
+          }
+
+          return updatedMessages;
+        });
+      }
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('Fetch aborted');
+        return;
+      }
+
       console.error('Query error:', error);
-      setError(error.response?.data?.detail || 'Failed to get a response');
+      setError(error.message || 'Failed to get a response');
 
       // Remove the loading message
       setMessages((prev) => prev.filter((msg) => !(msg.id && msg.loading)));
     } finally {
-      setIsLoading(false);
+      if (!signal.aborted) {
+        setIsLoading(false);
+        // Clear the abortControllerRef if this request is complete and not aborted
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+        }
+      }
     }
   };
 

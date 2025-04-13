@@ -17,12 +17,12 @@ This project implements a Retrieval-Augmented Generation (RAG) application that 
 ├── backend/                # FastAPI backend
 │   ├── main.py             # Main API implementation
 │   └── requirements.txt    # Python dependencies
+│   └── aimakerspace/       # Utility modules
 ├── frontend/               # React frontend
 │   ├── public/             # Public assets
 │   └── src/                # React source code
 │       ├── components/     # React components
 │       └── App.js          # Main React application
-└── aimakerspace/           # Utility modules (from original project)
 ```
 
 ## Setup and Installation
@@ -30,7 +30,7 @@ This project implements a Retrieval-Augmented Generation (RAG) application that 
 ### Prerequisites
 
 - Python 3.8+
-- Node.js 14+
+- Node.js 20+
 - npm or yarn
 
 ### Backend Setup

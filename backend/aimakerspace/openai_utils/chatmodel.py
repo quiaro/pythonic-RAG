@@ -16,30 +16,29 @@ class ChatOpenAI:
         if not isinstance(messages, list):
             raise ValueError("messages must be a list")
 
-        client = OpenAI()
-        response = client.chat.completions.create(
-            model=self.model_name, messages=messages, **kwargs
-        )
+        with OpenAI() as client:
+            response = client.chat.completions.create(
+                model=self.model_name, messages=messages, **kwargs
+            )
 
-        if text_only:
-            return response.choices[0].message.content
+            if text_only:
+                return response.choices[0].message.content
 
-        return response
+            return response
     
     async def astream(self, messages, **kwargs):
         if not isinstance(messages, list):
             raise ValueError("messages must be a list")
         
-        client = AsyncOpenAI()
+        async with AsyncOpenAI() as client:
+            stream = await client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                stream=True,
+                **kwargs
+            )
 
-        stream = await client.chat.completions.create(
-            model=self.model_name,
-            messages=messages,
-            stream=True,
-            **kwargs
-        )
-
-        async for chunk in stream:
-            content = chunk.choices[0].delta.content
-            if content is not None:
-                yield content
+            async for chunk in stream:
+                content = chunk.choices[0].delta.content
+                if content is not None:
+                    yield content

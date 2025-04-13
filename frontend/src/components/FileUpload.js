@@ -86,8 +86,14 @@ const FileUpload = ({ setSessionId, setFileName, setStatus, status }) => {
       }
     } catch (error) {
       console.error('Polling error:', error);
-      setError('Failed to check processing status');
-      setStatus('error');
+
+      if (error.response && error.response.status === 404) {
+        // If we get a 404, the session may not be ready yet, try again after a delay
+        setTimeout(() => pollSessionStatus(sessionId), 1000);
+      } else {
+        setError('Failed to check processing status');
+        setStatus('error');
+      }
     }
   };
 

@@ -101,6 +101,12 @@ async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File
     # Create a unique session ID
     session_id = str(uuid.uuid4())
     
+    # Initialize the session with processing status
+    sessions[session_id] = {
+        "status": "processing",
+        "file_name": file.filename
+    }
+    
     # Create a temporary file with the correct extension
     with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
         # Copy the uploaded file content to the temporary file
@@ -131,17 +137,18 @@ async def process_file_and_setup_session(session_id: str, file_path: str, file_n
             llm=chat_openai
         )
         
-        # Store in the sessions dictionary
-        sessions[session_id] = {
+        # Update the session rather than replacing it
+        sessions[session_id].update({
             "pipeline": retrieval_augmented_qa_pipeline,
             "file_name": file_name,
             "status": "ready"
-        }
+        })
     except Exception as e:
-        sessions[session_id] = {
+        # Update the session with error information
+        sessions[session_id].update({
             "status": "error",
             "error": str(e)
-        }
+        })
     finally:
         # Clean up the temporary file
         try:

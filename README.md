@@ -1,3 +1,16 @@
+---
+title: RAG Application with FastAPI and React
+emoji: 📚
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+python_version: 3.12
+app_port: 7860,
+app_file: main.py,
+pinned: false
+short_description: Ask questions about an uploaded text or PDF file
+---
+
 # RAG Application with FastAPI and React
 
 This project implements a Retrieval-Augmented Generation (RAG) application that allows users to ask questions about uploaded text and PDF files. The app consists of a FastAPI backend and a React frontend.

@@ -1,6 +1,8 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import os
 import tempfile
 import shutil
@@ -9,6 +11,7 @@ from typing import Dict, List, Optional
 import asyncio
 import uvicorn
 from pydantic import BaseModel
+import pathlib
 
 # Import utility modules from aimakerspace
 import sys
@@ -20,6 +23,15 @@ from aimakerspace.openai_utils.prompts import (
 )
 from aimakerspace.openai_utils.chatmodel import ChatOpenAI
 from aimakerspace.vectordatabase import VectorDatabase
+
+
+# Determine the frontend build directory 
+# If in Docker, the frontend build is at /app/frontend/build
+# If running locally, use relative path ../frontend/build
+FRONTEND_BUILD_DIR = "/app/frontend/build" if os.path.exists("/app/frontend/build") else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "build")
+FRONTEND_STATIC_DIR = os.path.join(FRONTEND_BUILD_DIR, "static")
+FRONTEND_INDEX_HTML = os.path.join(FRONTEND_BUILD_DIR, "index.html")
+
 
 app = FastAPI(title="RAG API")
 
@@ -201,7 +213,12 @@ async def query(request: QueryRequest):
         return StreamingResponse(
             stream_response(),
             media_type="text/event-stream",
-            headers={"X-Accel-Buffering": "no"}  # Disable buffering for Nginx
+            headers={
+                "X-Accel-Buffering": "no",  # Disable buffering for Nginx
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Content-Type": "text/event-stream"
+            }
         )
     except Exception as e:
         # Handle exceptions during pipeline execution
@@ -217,5 +234,38 @@ async def delete_session(session_id: str):
     return {"status": "deleted"}
 
 
+# Mount the frontend build folder
+@app.get("/", include_in_schema=False)
+async def root():
+    return FileResponse(FRONTEND_INDEX_HTML)
+
+# Catch-all route to serve React Router paths
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_react_app(full_path: str):
+    # If the path is an API endpoint, skip this handler
+    if full_path.startswith("upload") or full_path.startswith("query") or full_path.startswith("session"):
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    # Check if a static file exists in the build folder
+    static_file_path = os.path.join(FRONTEND_BUILD_DIR, full_path)
+    if os.path.isfile(static_file_path):
+        return FileResponse(static_file_path)
+    
+    # Otherwise, serve the index.html for client-side routing
+    return FileResponse(FRONTEND_INDEX_HTML)
+
+# Mount static files (JavaScript, CSS, images)
+app.mount("/static", StaticFiles(directory=FRONTEND_STATIC_DIR), name="static")
+
+# Main entry point
 if __name__ == "__main__":
+    # Make sure the frontend build folder exists
+    if not os.path.exists("../frontend/build"):
+        print("Frontend build directory not found. Building frontend...")
+        # Build the frontend
+        os.chdir("../frontend")
+        os.system("npm install")
+        os.system("npm run build")
+        os.chdir("../backend")
+
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 

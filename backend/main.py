@@ -200,7 +200,7 @@ async def query(request: QueryRequest):
         
         return StreamingResponse(
             stream_response(),
-            media_type="text/plain",
+            media_type="text/event-stream",
             headers={"X-Accel-Buffering": "no"}  # Disable buffering for Nginx
         )
     except Exception as e:

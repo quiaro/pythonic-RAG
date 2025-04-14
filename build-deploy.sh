@@ -29,7 +29,7 @@ pip install -r requirements.txt
 echo -e "${GREEN}Build complete!${NC}"
 echo -e "${GREEN}To run the combined app:${NC}"
 echo -e "cd dist"
-echo -e "uvicorn main:app --host 0.0.0.0 --port 8000"
+echo -e "uvicorn main:app --host 0.0.0.0 --port 7860"
 
 # Optionally, build Docker image
 if [ "$1" == "--docker" ]; then
@@ -38,5 +38,5 @@ if [ "$1" == "--docker" ]; then
     docker build -t pythonic-rag:latest .
     echo -e "${GREEN}Docker image built successfully!${NC}"
     echo -e "${GREEN}To run the Docker container:${NC}"
-    echo -e "docker run -p 8000:8000 pythonic-rag:latest"
+    echo -e "docker run -p 7860:7860 pythonic-rag:latest"
 fi 

@@ -118,10 +118,10 @@ You can deploy the application as a single bundle, where the FastAPI backend ser
 
    ```bash
    cd dist
-   uvicorn main:app --host 0.0.0.0 --port 8000
+   uvicorn main:app --host 0.0.0.0 --port 7860
    ```
 
-4. Access the application at `http://localhost:8000`
+4. Access the application at `http://localhost:7860`
 
 #### Option 2: Docker Deployment
 
@@ -140,10 +140,10 @@ You can deploy the application as a single bundle, where the FastAPI backend ser
 3. Run the Docker container:
 
    ```bash
-   docker run -p 8000:8000 -e OPENAI_API_KEY=your_openai_api_key_here pythonic-rag:latest
+   docker run -p 7860:7860 -e OPENAI_API_KEY=your_openai_api_key_here pythonic-rag:latest
    ```
 
-4. Access the application at `http://localhost:8000`
+4. Access the application at `http://localhost:7860`
 
 #### Option 3: Separate Frontend and Backend Deployment
 
@@ -154,7 +154,7 @@ For more advanced production deployments, you can deploy the frontend and backen
    ```bash
    cd backend
    pip install -r requirements.txt
-   gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app
+   gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app -b 0.0.0.0:7860
    ```
 
 2. Frontend:

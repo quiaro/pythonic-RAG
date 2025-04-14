@@ -10,4 +10,4 @@ docker run --rm pythonic-rag:latest ls -la /app/frontend/build
 docker run --rm pythonic-rag:latest ls -la /app/frontend/build/static
 
 echo "All checks passed! You can now run the container with:"
-echo "docker run -p 8000:8000 pythonic-rag:latest" 
+echo "docker run -p 7860:7860 pythonic-rag:latest" 

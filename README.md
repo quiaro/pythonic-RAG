@@ -34,7 +34,7 @@ This project implements a Retrieval-Augmented Generation (RAG) application that 
 
 - Python 3.8+
 - Node.js 20+
-- npm or yarn
+- npm
 - Docker (optional, for containerized deployment)
 
 ### Environment Setup
@@ -85,16 +85,12 @@ OPENAI_API_KEY=your_openai_api_key_here
 
    ```bash
    npm install
-   # or
-   yarn install
    ```
 
 3. Start the development server:
 
    ```bash
    npm start
-   # or
-   yarn start
    ```
 
 4. The app will open in your browser at `http://localhost:3000`

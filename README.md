@@ -5,8 +5,8 @@ colorFrom: indigo
 colorTo: purple
 sdk: docker
 python_version: 3.12
-app_port: 7860,
-app_file: main.py,
+app_port: 7860
+app_file: main.py
 pinned: false
 short_description: Ask questions about an uploaded text or PDF file
 ---

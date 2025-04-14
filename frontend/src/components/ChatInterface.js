@@ -14,13 +14,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import axios from 'axios';
 import Message from './Message';
 
-const ChatInterface = ({
-  sessionId,
-  fileName,
-  status,
-  setStatus,
-  resetSession,
-}) => {
+const ChatInterface = ({ sessionId, fileName, status, resetSession }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -92,7 +86,6 @@ const ChatInterface = ({
         { role: 'assistant', content: '', id: tempId, loading: true },
       ]);
 
-      // Using fetch API for better streaming support
       const response = await fetch('/query', {
         method: 'POST',
         headers: {
@@ -111,16 +104,13 @@ const ChatInterface = ({
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let done, value;
 
-      while (true) {
+      while (!done) {
+        ({ done, value } = await reader.read());
+
         // Check if we need to abort
-        if (signal.aborted) {
-          break;
-        }
-
-        const { done, value } = await reader.read();
-
-        if (done) {
+        if (signal.aborted || done) {
           break;
         }
 

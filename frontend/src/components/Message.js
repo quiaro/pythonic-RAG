@@ -27,12 +27,10 @@ const Message = ({ message }) => {
       }}
     >
       <Paper elevation={1} sx={messageStyle}>
-        {message.loading ? (
+        {message.content === '' ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <CircularProgress size={20} />
-            <Typography variant="body1">
-              {message.content || 'Thinking...'}
-            </Typography>
+            <Typography variant="body1">Thinking...</Typography>
           </Box>
         ) : (
           <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>

@@ -83,7 +83,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 4. Start the backend server:
    ```bash
-   uvicorn main:app --reload
+   uvicorn main:app --reload --host 0.0.0.0 --port 7860
    ```
 
 #### Frontend Setup
@@ -103,7 +103,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 3. Start the development server:
 
    ```bash
-   npm start
+   npm run start
    ```
 
 4. The app will open in your browser at `http://localhost:3000`

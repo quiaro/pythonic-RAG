@@ -1,31 +1,42 @@
+FROM node:22 AS frontend-builder
 
-# Get a distribution that has uv already installed
-FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm install
 
-# Add user - this is the user that will run the app
-# If you do not set user, the app will run as root (undesirable)
-RUN useradd -m -u 1000 user
-USER user
+COPY frontend ./
+RUN npm run build:prod
 
-# Set the home directory and path
-ENV HOME=/home/user \
-    PATH=/home/user/.local/bin:$PATH        
+FROM python:3.11-slim-bullseye
 
-ENV UVICORN_WS_PROTOCOL=websockets
+WORKDIR /app
 
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
-WORKDIR $HOME/app
+# Copy backend requirements and install dependencies
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the app to the container
-COPY --chown=user . $HOME/app
+# Copy backend code
+COPY backend/ /app/
 
-# Install the dependencies
-# RUN uv sync --frozen
-RUN uv sync
+# Create the frontend directory and copy the build files
+RUN mkdir -p /app/frontend/build
+COPY --from=frontend-builder /app/frontend/build /app/frontend/build
+
+# Verify frontend build exists for debugging
+RUN ls -la /app/frontend/build
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV PORT=8000
 
 # Expose the port
-EXPOSE 7860
+EXPOSE 8000
 
-# Run the app
-CMD ["uv", "run", "chainlit", "run", "app.py", "--host", "0.0.0.0", "--port", "7860"]
+# Run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import DeleteIcon from '@mui/icons-material/Delete';
-import axios from 'axios';
+import api from '../utils/api';
 import Message from './Message';
 
 const ChatInterface = ({ sessionId, fileName, status, resetSession }) => {
@@ -86,10 +86,12 @@ const ChatInterface = ({ sessionId, fileName, status, resetSession }) => {
         { role: 'assistant', content: '', id: tempId, loading: true },
       ]);
 
-      const response = await fetch('/query', {
+      // Using fetch API with proper headers for streaming
+      const response = await fetch(`${api.defaults.baseURL}/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Accept: 'text/event-stream',
         },
         body: JSON.stringify({
           session_id: sessionId,
@@ -182,7 +184,7 @@ const ChatInterface = ({ sessionId, fileName, status, resetSession }) => {
 
   const handleDeleteSession = async () => {
     try {
-      await axios.delete(`/session/${sessionId}`);
+      await api.delete(`/session/${sessionId}`);
       resetSession();
     } catch (error) {
       console.error('Error deleting session:', error);

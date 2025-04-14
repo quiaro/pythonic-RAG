@@ -9,7 +9,7 @@ import {
   Fade,
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import axios from 'axios';
+import api from '../utils/api';
 
 const FileUpload = ({ setSessionId, setFileName, setStatus, status }) => {
   const [file, setFile] = useState(null);
@@ -50,7 +50,7 @@ const FileUpload = ({ setSessionId, setFileName, setStatus, status }) => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await axios.post('/upload', formData, {
+      const response = await api.post('/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -72,7 +72,7 @@ const FileUpload = ({ setSessionId, setFileName, setStatus, status }) => {
 
   const pollSessionStatus = async (sessionId) => {
     try {
-      const response = await axios.get(`/session/${sessionId}`);
+      const response = await api.get(`/session/${sessionId}`);
       if (response.data.status === 'ready') {
         setStatus('ready');
       } else if (response.data.status === 'error') {

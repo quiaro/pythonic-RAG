@@ -16,13 +16,16 @@ This project implements a Retrieval-Augmented Generation (RAG) application that 
 .
 ├── backend/                # FastAPI backend
 │   ├── main.py             # Main API implementation
-│   └── requirements.txt    # Python dependencies
+│   ├── requirements.txt    # Python dependencies
 │   └── aimakerspace/       # Utility modules
 ├── frontend/               # React frontend
 │   ├── public/             # Public assets
 │   └── src/                # React source code
 │       ├── components/     # React components
 │       └── App.js          # Main React application
+├── Dockerfile              # Docker configuration
+├── build-deploy.sh         # Script for building and deployment
+└── docker-build-verify.sh  # Script for verifying Docker image
 ```
 
 ## Setup and Installation
@@ -32,50 +35,55 @@ This project implements a Retrieval-Augmented Generation (RAG) application that 
 - Python 3.8+
 - Node.js 20+
 - npm or yarn
+- Docker (optional, for containerized deployment)
 
-### Backend Setup
+### Environment Setup
+
+Create a `.env` file in the root directory with your OpenAI API key:
+
+```
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+### Development Setup
+
+#### Backend Setup
 
 1. Navigate to the backend directory:
 
-   ```
+   ```bash
    cd backend
    ```
 
 2. Create a virtual environment (optional but recommended):
 
-   ```
+   ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
 3. Install dependencies:
 
-   ```
+   ```bash
    pip install -r requirements.txt
    ```
 
-4. Create a `.env` file with your OpenAI API key:
-
-   ```
-   OPENAI_API_KEY=your_openai_api_key_here
-   ```
-
-5. Start the backend server:
-   ```
+4. Start the backend server:
+   ```bash
    uvicorn main:app --reload
    ```
 
-### Frontend Setup
+#### Frontend Setup
 
 1. Navigate to the frontend directory:
 
-   ```
+   ```bash
    cd frontend
    ```
 
 2. Install dependencies:
 
-   ```
+   ```bash
    npm install
    # or
    yarn install
@@ -83,13 +91,85 @@ This project implements a Retrieval-Augmented Generation (RAG) application that 
 
 3. Start the development server:
 
-   ```
+   ```bash
    npm start
    # or
    yarn start
    ```
 
 4. The app will open in your browser at `http://localhost:3000`
+
+### Production Deployment
+
+#### Option 1: Combined Bundle Deployment
+
+You can deploy the application as a single bundle, where the FastAPI backend serves both the API endpoints and the frontend static files.
+
+1. Use the provided build script:
+
+   ```bash
+   chmod +x build-deploy.sh
+   ./build-deploy.sh
+   ```
+
+2. This will:
+
+   - Build the React frontend for production
+   - Copy all necessary files to a `dist` directory
+   - Install backend dependencies
+
+3. Run the combined application:
+
+   ```bash
+   cd dist
+   uvicorn main:app --host 0.0.0.0 --port 8000
+   ```
+
+4. Access the application at `http://localhost:8000`
+
+#### Option 2: Docker Deployment
+
+1. Build and verify the Docker image:
+
+   ```bash
+   chmod +x docker-build-verify.sh
+   ./docker-build-verify.sh
+   ```
+
+2. This script will:
+
+   - Build the Docker image
+   - Verify that the frontend build files are correctly located
+
+3. Run the Docker container:
+
+   ```bash
+   docker run -p 8000:8000 -e OPENAI_API_KEY=your_openai_api_key_here pythonic-rag:latest
+   ```
+
+4. Access the application at `http://localhost:8000`
+
+#### Option 3: Separate Frontend and Backend Deployment
+
+For more advanced production deployments, you can deploy the frontend and backend separately:
+
+1. Backend:
+
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app
+   ```
+
+2. Frontend:
+
+   ```bash
+   cd frontend
+   npm install
+   npm run build
+   ```
+
+3. Serve the frontend using a static file server like Nginx or a service like Vercel, Netlify, etc.
 
 ## Usage
 
@@ -120,9 +200,25 @@ The backend provides the following API endpoints:
 - **Frontend:**
   - React
   - Material UI
-  - Axios for API requests
-  - Streaming response handling
+  - Fetch API for streaming responses
+  - Modern ES6+ JavaScript
 
-## Converting from Chainlit
+## Production Considerations
 
-This project was converted from a Chainlit application to a FastAPI + React application. The conversion process preserved the core functionality while providing more customization options and a modern UI.
+When deploying to production, consider the following:
+
+1. **Environment Variables**: Ensure all sensitive information (like API keys) are set as environment variables, not hardcoded.
+
+2. **CORS Settings**: Update the CORS middleware in `main.py` to only allow requests from your frontend domain.
+
+3. **Error Handling**: Implement proper error handling and logging for production.
+
+4. **Scaling**: For high-traffic applications, consider deploying behind a load balancer and implementing caching.
+
+5. **Monitoring**: Add application monitoring and logging for production use.
+
+## Troubleshooting
+
+- If you encounter issues with Docker, verify the file paths using `docker-build-verify.sh`
+- For OpenAI API issues, check your API key and ensure it has sufficient quota
+- For streaming issues, ensure your server and proxy configurations support streaming responses
